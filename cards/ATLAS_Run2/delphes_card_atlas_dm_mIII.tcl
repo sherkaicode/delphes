@@ -40,7 +40,7 @@ set ExecutionPath {
 
   MuonEfficiency
   MuonIsolation
-  MuonVetoFilter
+
   MissingET
   
   JetFlavorAssociation
@@ -386,8 +386,7 @@ module Merger GenMissingET {
 ############
 
 module FastJetFinder FastJetFinder {
-  # set InputArray Calorimeter/towers
-  set InputArray EFlowMerger/eflow
+  set InputArray Calorimeter/towers
   set OutputArray jets
   set JetAlgorithm 6
   set ParameterR 0.4
@@ -399,8 +398,7 @@ module FastJetFinder FastJetFinder {
 ##################
 
 module FastJetFinder FatJetFinder {
-  # set InputArray Calorimeter/towers
-  set InputArray EFlowMerger/eflow
+  set InputArray Calorimeter/towers
   set OutputArray jets
   set JetAlgorithm 6
   set ParameterR 1.0
@@ -512,28 +510,12 @@ module Isolation MuonIsolation {
   set PTRatioMax 0.3
 }
 
-#####################################################
-# Muon Veto Filter (Treat Muons as Invisible for MET)
-#####################################################
-
-module PdgCodeFilter MuonVetoFilter {
-  set InputArray EFlowMergerAllTracks/eflow
-  set OutputArray eflow
-  set Invert true
-
-  # Remove Muons so they are not summed in MET
-  add PdgCode {13}
-  add PdgCode {-13}
-}
-
 ###################
 # Missing ET merger
 ###################
 
 module Merger MissingET {
-# add InputArray InputArray
-#  add InputArray EFlowMergerAllTracks/eflow
-  add InputArray MuonVetoFilter/eflow
+  add InputArray EFlowMergerAllTracks/eflow
   set MomentumOutputArray momentum
 }
 
