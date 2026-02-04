@@ -1,11 +1,9 @@
 #######################################
 # Order of execution of various modules
 #######################################
-# Improved updated the parametric fit from the delphes_ATLAS_PileUp Card 
-# Presentation, data, and code for the fits of the updates can be seen here: https://zenodo.org/records/17622130
 
 set ExecutionPath {
-  
+
   PileUpMerger
   ParticlePropagator
 
@@ -18,7 +16,6 @@ set ExecutionPath {
   MuonMomentumSmearing
 
   TrackMerger
-  TrackSmearing
   Calorimeter
   ElectronFilter
   TrackPileUpSubtractor
@@ -35,6 +32,7 @@ set ExecutionPath {
   FastJetFinder
   FatJetFinder
   JetPileUpSubtractor
+
   JetEnergyScale
 
   PhotonEfficiency
@@ -71,13 +69,12 @@ module PileUpMerger PileUpMerger {
   set VertexOutputArray vertices
 
   # pre-generated minbias input file
-  set PileUpFile /home/aegis/Titan0/pythia2/pythia8245/examples/Research/MiniBias.pileup
+  set PileUpFile /home/aegis/Titan0/delphes/MinBias.pileup
 
   # average expected pile up
-  # from https://atlas.web.cern.ch/Atlas/GROUPS/DATAPREPARATION/PublicPlots/2016/DataSummary/figs/mu_2016.pdf
+  set MeanPileUp 50
 
-  set MeanPileUp 30 
-  # maximum spread in the beam direction in m
+   # maximum spread in the beam direction in m
   set ZVertexSpread 0.25
 
   # maximum spread in time in s
@@ -85,16 +82,16 @@ module PileUpMerger PileUpMerger {
 
   # vertex smearing formula f(z,t) (z,t need to be respectively given in m,s)
   set VertexDistributionFormula {exp(-(t^2/160e-12^2/2))*exp(-(z^2/0.053^2/2))}
+
+
 }
 
 #################################
-# Propagate particles in cylinder (https://cds.cern.ch/record/331063/files/ATLAS-TDR-4-Volume-I.pdf. Chapter 1.2.2) 
+# Propagate particles in cylinder
 #################################
 
 module ParticlePropagator ParticlePropagator {
   set InputArray PileUpMerger/stableParticles
-
-  # set InputArray Delphes/stableParticles
 
   set OutputArray stableParticles
   set ChargedHadronOutputArray chargedHadrons
@@ -104,8 +101,7 @@ module ParticlePropagator ParticlePropagator {
   # radius of the magnetic field coverage, in m
   set Radius 1.15
   # half-length of the magnetic field coverage, in m
-  # https://inspirehep.net/files/9c87006a67cf21eea37433db818c8ccc 
-  set HalfLength 3.45
+  set HalfLength 3.51
 
   # magnetic field
   set Bz 2.0
@@ -119,7 +115,15 @@ module Efficiency ChargedHadronTrackingEfficiency {
   set InputArray ParticlePropagator/chargedHadrons
   set OutputArray chargedHadrons
 
-  source tracking/chargedHadrons.tcl
+  # add EfficiencyFormula {efficiency formula as a function of eta and pt}
+
+  # tracking efficiency formula for charged hadrons
+  set EfficiencyFormula {                                                    (pt <= 0.1)   * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 0.1   && pt <= 1.0)   * (0.70) +
+                                           (abs(eta) <= 1.5) * (pt > 1.0)                  * (0.95) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 0.1   && pt <= 1.0)   * (0.60) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 1.0)                  * (0.85) +
+                         (abs(eta) > 2.5)                                                  * (0.00)}
 }
 
 ##############################
@@ -130,7 +134,17 @@ module Efficiency ElectronTrackingEfficiency {
   set InputArray ParticlePropagator/electrons
   set OutputArray electrons
 
-  source tracking/elecMuon_loose.tcl
+  # set EfficiencyFormula {efficiency formula as a function of eta and pt}
+
+  # tracking efficiency formula for electrons
+  set EfficiencyFormula {                                                    (pt <= 0.1)   * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 0.1   && pt <= 1.0)   * (0.73) +
+                                           (abs(eta) <= 1.5) * (pt > 1.0   && pt <= 1.0e2) * (0.95) +
+                                           (abs(eta) <= 1.5) * (pt > 1.0e2)                * (0.99) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 0.1   && pt <= 1.0)   * (0.50) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 1.0   && pt <= 1.0e2) * (0.83) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 1.0e2)                * (0.90) +
+                         (abs(eta) > 2.5)                                                  * (0.00)}
 }
 
 ##########################
@@ -141,7 +155,15 @@ module Efficiency MuonTrackingEfficiency {
   set InputArray ParticlePropagator/muons
   set OutputArray muons
 
-  source tracking/elecMuon_loose.tcl
+  # set EfficiencyFormula {efficiency formula as a function of eta and pt}
+
+  # tracking efficiency formula for muons
+  set EfficiencyFormula {                                                    (pt <= 0.1)   * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 0.1   && pt <= 1.0)   * (0.75) +
+                                           (abs(eta) <= 1.5) * (pt > 1.0)                  * (0.99) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 0.1   && pt <= 1.0)   * (0.70) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 1.0)                  * (0.98) +
+                         (abs(eta) > 2.5)                                                  * (0.00)}
 }
 
 ########################################
@@ -173,12 +195,13 @@ module MomentumSmearing ElectronMomentumSmearing {
 
   # resolution formula for electrons
   # based on arXiv:1405.6569
-  # source ATLAS_Run2/resolution/electron_momentum.tcl
-  source resolution/electron_momentum.tcl
+  set ResolutionFormula {                  (abs(eta) <= 0.5) * (pt > 0.1) * sqrt(0.03^2 + pt^2*1.3e-3^2) +
+                         (abs(eta) > 0.5 && abs(eta) <= 1.5) * (pt > 0.1) * sqrt(0.05^2 + pt^2*1.7e-3^2) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 0.1) * sqrt(0.15^2 + pt^2*3.1e-3^2)}
 }
 
 ###############################
-# Momentum resolution for muons 
+# Momentum resolution for muons
 ###############################
 
 module MomentumSmearing MuonMomentumSmearing {
@@ -188,36 +211,21 @@ module MomentumSmearing MuonMomentumSmearing {
   # set ResolutionFormula {resolution formula as a function of eta and pt}
 
   # resolution formula for muons
-  # ID Muons: id_muons_pt_res.tcl
-  # MS Muons: ms_muons_pt_res.tcl
-  # cb Muons: cb_muons_pt_res.tcl
-  # https://cds.cern.ch/record/2844624/files/document.pdf
-  
-  # source ATLAS_Run2/resolution/muons/cb_muons_pt_res.tcl
-  source resolution/muons/cb_muons_pt_res.tcl
+  set ResolutionFormula {                  (abs(eta) <= 0.5) * (pt > 0.1) * sqrt(0.01^2 + pt^2*1.0e-4^2) +
+                         (abs(eta) > 0.5 && abs(eta) <= 1.5) * (pt > 0.1) * sqrt(0.015^2 + pt^2*1.5e-4^2) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 0.1) * sqrt(0.025^2 + pt^2*3.5e-4^2)}
 }
 
 ##############
 # Track merger
 ##############
-  
+
 module Merger TrackMerger {
 # add InputArray InputArray
   add InputArray ChargedHadronMomentumSmearing/chargedHadrons
   add InputArray ElectronMomentumSmearing/electrons
   add InputArray MuonMomentumSmearing/muons
   set OutputArray tracks
-}
-module TrackSmearing TrackSmearing {
-  set InputArray TrackMerger/tracks
-#  set BeamSpotInputArray BeamSpotFilter/beamSpotParticle
-  set OutputArray tracks
-#  set ApplyToPileUp true
-
-  # magnetic field, fixed now 2 T now 3.8 T from CMS
-  set Bz 2.0
-
-  source trackResolutionATLAS.tcl
 }
 
 #############
@@ -226,7 +234,7 @@ module TrackSmearing TrackSmearing {
 
 module Calorimeter Calorimeter {
   set ParticleInputArray ParticlePropagator/stableParticles
-  set TrackInputArray TrackSmearing/tracks
+  set TrackInputArray TrackMerger/tracks
 
   set TowerOutputArray towers
   set PhotonOutputArray photons
@@ -283,6 +291,8 @@ module Calorimeter Calorimeter {
   add EnergyFraction {1000025} {0.0 0.0}
   add EnergyFraction {1000035} {0.0 0.0}
   add EnergyFraction {1000045} {0.0 0.0}
+  
+
   # --- BSM HV INVISIBLES ---
   # Visible Diagonals (Included here in case they are set to be stable)
   add EnergyFraction {4900111} {0.0 0.0}
@@ -389,7 +399,7 @@ module Merger NeutralTowerMerger {
 
 module Merger EFlowMergerAllTracks {
 # add InputArray InputArray
-  add InputArray TrackSmearing/tracks
+  add InputArray TrackMerger/tracks
   add InputArray Calorimeter/eflowPhotons
   add InputArray Calorimeter/eflowNeutralHadrons
   set OutputArray eflow
@@ -477,7 +487,7 @@ module FastJetFinder GenJetFinder {
   set JetAlgorithm 6
   set ParameterR 0.4
 
-  set JetPTMin 20.0
+  set JetPTMin 7.0
 }
 
 #########################
@@ -485,6 +495,7 @@ module FastJetFinder GenJetFinder {
 ########################
 
 module Merger GenMissingET {
+# add InputArray InputArray
   add InputArray NeutrinoFilter/filteredParticles
   set MomentumOutputArray momentum
 }
@@ -500,23 +511,19 @@ module FastJetFinder FastJetFinder {
   set OutputArray jets
 
   # area algorithm: 0 Do not compute area, 1 Active area explicit ghosts, 2 One ghost passive area, 3 Passive area, 4 Voronoi, 5 Active area
-  # set AreaAlgorithm 5
+  set AreaAlgorithm 5
 
   # jet algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
   set JetAlgorithm 6
   set ParameterR 0.4
 
-  set JetPTMin 20.0
+  set JetPTMin 7.0
 }
-
-##################
-# Fat Jet finder
-##################
 
 module FastJetFinder FatJetFinder {
   set InputArray Calorimeter/towers
 
-  set OutputArray jets
+  set OutputArray fatjets
 
   # algorithm: 1 CDFJetClu, 2 MidPoint, 3 SIScone, 4 kt, 5 Cambridge/Aachen, 6 antikt
   set JetAlgorithm 6
@@ -537,7 +544,6 @@ module FastJetFinder FatJetFinder {
   set JetPTMin 250.0
 }
 
-
 ###########################
 # Jet Pile-Up Subtraction
 ###########################
@@ -548,7 +554,7 @@ module JetPileUpSubtractor JetPileUpSubtractor {
 
   set OutputArray jets
 
-  set JetPTMin 20.0
+  set JetPTMin 7.0
 }
 
 ##################
@@ -574,8 +580,10 @@ module Efficiency PhotonEfficiency {
   # set EfficiencyFormula {efficiency formula as a function of eta and pt}
 
   # efficiency formula for photons
-  # source ATLAS_Run2/efficiency/photon.tcl
-  source efficiency/photon.tcl
+  set EfficiencyFormula {                                      (pt <= 10.0) * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 10.0)  * (0.95) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 10.0)  * (0.85) +
+                         (abs(eta) > 2.5)                                   * (0.00)}
 }
 
 ##################
@@ -588,13 +596,12 @@ module Isolation PhotonIsolation {
   set RhoInputArray Rho/rho
 
   set OutputArray photons
-  # Loose 0.2, Tight 
-  set DeltaRMax 0.2
 
-  set PTMin 1.0
-  # https://arxiv.org/pdf/1908.00005, Table 3
-  # Loose 0.05 Tight: 0.05
-  set PTRatioMax 0.05
+  set DeltaRMax 0.5
+
+  set PTMin 0.5
+
+  set PTRatioMax 0.12
 }
 
 #####################
@@ -603,16 +610,15 @@ module Isolation PhotonIsolation {
 
 module Efficiency ElectronEfficiency {
   set InputArray TrackPileUpSubtractor/electrons
-  # set InputArray ElectronFilter/electrons
   set OutputArray electrons
 
   # set EfficiencyFormula {efficiency formula as a function of eta and pt}
 
   # efficiency formula for electrons
-  
-  # source ATLAS_Run2/efficiency/electron_medium.tcl
-  source efficiency/electron_medium.tcl
-
+  set EfficiencyFormula {                                      (pt <= 10.0) * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 10.0)  * (0.95) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.5) * (pt > 10.0)  * (0.85) +
+                         (abs(eta) > 2.5)                                   * (0.00)}
 }
 
 ####################
@@ -626,13 +632,11 @@ module Isolation ElectronIsolation {
 
   set OutputArray electrons
 
-  # DeltaMax = 0.3 or 0.2
-  set DeltaRMax 0.2
+  set DeltaRMax 0.5
 
-  set PTMin 1.0
-  # https://arxiv.org/pdf/2308.13362
-  # Loose 0.15 Tight: 0.06
-  set PTRatioMax 0.15
+  set PTMin 0.5
+
+  set PTRatioMax 0.12
 }
 
 #################
@@ -641,16 +645,17 @@ module Isolation ElectronIsolation {
 
 module Efficiency MuonEfficiency {
   set InputArray TrackPileUpSubtractor/muons
-  # set InputArray MuonMomentumSmearing/muons
   set OutputArray muons
 
   # set EfficiencyFormula {efficiency as a function of eta and pt}
 
   # efficiency formula for muons
-  # source ATLAS_Run2/efficiency/muon_medium.tcl
-  source efficiency/muon_medium.tcl
-
+  set EfficiencyFormula {                                      (pt <= 10.0) * (0.00) +
+                                           (abs(eta) <= 1.5) * (pt > 10.0)  * (0.95) +
+                         (abs(eta) > 1.5 && abs(eta) <= 2.7) * (pt > 10.0)  * (0.85) +
+                         (abs(eta) > 2.7)                                   * (0.00)}
 }
+
 ################
 # Muon isolation
 ################
@@ -662,12 +667,11 @@ module Isolation MuonIsolation {
 
   set OutputArray muons
 
-  # https://cds.cern.ch/record/2746302/files/Aad2021_Article_MuonReconstructionAndIdentific.pdf
-  set DeltaRMax 0.3
-  
-  set PTMin 1.0
-  # Loose (0.3), Tight (0.15)
-  set PTRatioMax 0.3
+  set DeltaRMax 0.5
+
+  set PTMin 0.5
+
+  set PTRatioMax 0.25
 }
 
 ###################
@@ -677,6 +681,7 @@ module Isolation MuonIsolation {
 module Merger MissingET {
 # add InputArray InputArray
   add InputArray EFlowMergerAllTracks/eflow
+  # add InputArray MuonMomentumSmearing/muons
   set MomentumOutputArray momentum
 }
 
@@ -724,9 +729,16 @@ module BTagging BTagging {
   # PDG code = the highest PDG code of a quark or gluon inside DeltaR cone around jet axis
   # gluon's PDG code has the lowest priority
 
-  add EfficiencyFormula {0} {0.00677 + 2.1e-06*pt}
-  add EfficiencyFormula {4} {0.186*tanh(0.60700*pt)*(1/(1 + 0.00097*pt))}
-  add EfficiencyFormula {5} {2.993*tanh(0.00181*pt)*(30/(1 + 0.18066*pt))}
+  # based on ATL-PHYS-PUB-2015-022
+
+  # default efficiency formula (misidentification rate)
+  add EfficiencyFormula {0} {0.002+7.3e-06*pt}
+
+  # efficiency formula for c-jets (misidentification rate)
+  add EfficiencyFormula {4} {0.20*tanh(0.02*pt)*(1/(1+0.0034*pt))}
+
+  # efficiency formula for b-jets
+  add EfficiencyFormula {5} {0.80*tanh(0.003*pt)*(30/(1+0.086*pt))}
 }
 
 #############
@@ -737,7 +749,7 @@ module TrackCountingTauTagging TauTagging {
  
   set ParticleInputArray Delphes/allParticles
   set PartonInputArray Delphes/partons
-  set TrackInputArray TrackSmearing/tracks
+  set TrackInputArray TrackMerger/tracks
   set JetInputArray JetEnergyScale/jets
 
   set DeltaR 0.2
@@ -796,7 +808,7 @@ module TreeWriter TreeWriter {
 #  add Branch Calorimeter/eflowTracks EFlowTrack Track
 #  add Branch Calorimeter/eflowPhotons EFlowPhoton Tower
 #  add Branch Calorimeter/eflowNeutralHadrons EFlowNeutralHadron Tower
-  add Branch EFlowMerger/eflow ParticleFlowCandidate ParticleFlowCandidate
+
   add Branch GenJetFinder/jets GenJet Jet
   add Branch GenMissingET/momentum GenMissingET MissingET
 
@@ -804,13 +816,12 @@ module TreeWriter TreeWriter {
   add Branch UniqueObjectFinder/electrons Electron Electron
   add Branch UniqueObjectFinder/photons Photon Photon
   add Branch UniqueObjectFinder/muons Muon Muon
-
-  add Branch FatJetFinder/jets FatJet Jet
-  add Branch FastJetFinder/jets SmallJet Jet
-
   add Branch MissingET/momentum MissingET MissingET
   add Branch ScalarHT/energy ScalarHT ScalarHT
   add Branch Rho/rho Rho Rho
   add Branch PileUpMerger/vertices Vertex Vertex
+
+# largeRjet [TM 05-30-2021]  
+  add Branch FatJetFinder/fatjets FatJet Jet
 
 }

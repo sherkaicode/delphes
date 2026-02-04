@@ -14,8 +14,8 @@ card = "validation_delphes_card_IDEA.tcl"
 name = os.path.basename(card.replace(".tcl", ""))
 
 ## run parameters:
-njobs = 500
-nevts_per_job = 25000
+njobs = 2
+nevts_per_job = 10
 
 #
 pmin = 1

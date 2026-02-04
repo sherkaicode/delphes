@@ -274,7 +274,11 @@ def main():
                     report_latex.begin_frame(title)
                     figs = []
                     for plot in plots:
-                        figs.append(name_path_dict[plot.name])
+                        try:
+                            figs.append(name_path_dict[plot.name])
+                        except KeyError:
+                            print(" WARNING: plot {} not found ".format(plot.name))
+                            figs.append("validation/placeholder.png")
                     report_latex.add_figures(figs)
 
         report_latex.compile()

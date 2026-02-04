@@ -18,8 +18,8 @@ card = "validation_delphes_card_IDEA.tcl"
 name = os.path.basename(card.replace(".tcl", ""))
 
 ## run parameters:
-njobs = 100
-nevts_per_job = 25000
+njobs = 1
+nevts_per_job = 10
 
 #
 pmin = 0.1
@@ -489,8 +489,8 @@ gen_cond_btag[up] = "p.Flavor < 4"
 gen_cond_ctag = gen_cond_btag
 
 gen_cond_tautag = dict()
-gen_cond_tautag[tau] = "p.TauFlavor == 15"
-gen_cond_tautag[up] = "p.TauFlavor == 0"
+gen_cond_tautag[tau] = "p.Flavor == 15"
+gen_cond_tautag[up] = "p.Flavor == 0"
 
 
 eff_btag_plots = EfficiencyTaggingBlock("Jet", "b-tag", mom, theta, gen_cond_btag, [0], "BTag", eff_tag_plots)
