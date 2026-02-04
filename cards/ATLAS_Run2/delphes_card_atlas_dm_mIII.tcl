@@ -40,7 +40,7 @@ set ExecutionPath {
 
   MuonEfficiency
   MuonIsolation
-  
+  MuonVetoFilter
   MissingET
   
   JetFlavorAssociation
@@ -512,13 +512,28 @@ module Isolation MuonIsolation {
   set PTRatioMax 0.3
 }
 
+#####################################################
+# Muon Veto Filter (Treat Muons as Invisible for MET)
+#####################################################
+
+module PdgCodeFilter MuonVetoFilter {
+  set InputArray EFlowMergerAllTracks/eflow
+  set OutputArray eflow
+  set Invert true
+
+  # Remove Muons so they are not summed in MET
+  add PdgCode {13}
+  add PdgCode {-13}
+}
+
 ###################
 # Missing ET merger
 ###################
 
 module Merger MissingET {
 # add InputArray InputArray
-  add InputArray EFlowMergerAllTracks/eflow
+#  add InputArray EFlowMergerAllTracks/eflow
+  add InputArray MuonVetoFilter/eflow
   set MomentumOutputArray momentum
 }
 
